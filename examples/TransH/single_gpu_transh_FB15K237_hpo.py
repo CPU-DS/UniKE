@@ -21,6 +21,7 @@ TransH-FB15K237-single-gpu-hpo
 """
 
 import pprint
+import os
 from unike.data import get_kge_data_loader_hpo_config
 from unike.module.model import get_transh_hpo_config
 from unike.module.loss import get_margin_loss_hpo_config
@@ -41,7 +42,7 @@ print()
 
 data_loader_config.update({
     'in_path': {
-        'value': '../../benchmarks/FB15K237/'
+        'value': os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/')
     }
 })
 

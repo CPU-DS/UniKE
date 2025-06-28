@@ -19,6 +19,7 @@ CompGCN-FB15K237-single-gpu
 UniKE 有一个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader, CompGCNSampler, CompGCNTestSampler
 from unike.module.model import CompGCN
 from unike.module.loss import CompGCNLoss
@@ -30,7 +31,7 @@ from unike.config import Trainer, Tester
 # :py:class:`unike.data.KGEDataLoader` 包含 ``in_path`` 用于传递数据集目录。
 
 dataloader = KGEDataLoader(
-	in_path = "../../benchmarks/FB15K237/",
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/'),
 	batch_size = 2048,
 	test_batch_size = 256,
 	num_workers = 16,

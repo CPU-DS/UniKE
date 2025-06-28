@@ -19,6 +19,7 @@ RotatE-WN18RR-single-gpu-adv
 UniKE 有 1 个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader, UniSampler, TradTestSampler
 from unike.module.model import RotatE
 from unike.module.loss import SigmoidLoss
@@ -31,7 +32,7 @@ from unike.config import Trainer, Tester
 
 # dataloader for training
 dataloader = KGEDataLoader(
-	in_path = '../../benchmarks/WN18RR/', 
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/WN18RR/'), 
 	batch_size = 2000,
 	neg_ent = 64,
 	test = True,

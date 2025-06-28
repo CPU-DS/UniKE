@@ -19,6 +19,7 @@ CompGCN-FB15K237-single-gpu-wandb
 UniKE 有一个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.utils import WandbLogger
 from unike.data import KGEDataLoader, CompGCNSampler, CompGCNTestSampler
 from unike.module.model import CompGCN
@@ -33,7 +34,7 @@ wandb_logger = WandbLogger(
 	project="pybind11-ke",
 	name="compgcn",
 	config=dict(
-		in_path = '../../benchmarks/FB15K237/',
+		in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/'),
 		batch_size = 2048,
 		test = True,
 		test_batch_size = 256,

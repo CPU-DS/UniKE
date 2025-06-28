@@ -23,6 +23,7 @@ TransE-FB15K-single-gpu
 UniKE 有 1 个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader, BernSampler, TradTestSampler
 from unike.module.model import TransE
 from unike.module.loss import MarginLoss
@@ -35,7 +36,7 @@ from unike.config import Trainer, Tester
 
 # dataloader for training
 dataloader = KGEDataLoader(
-	in_path = "../../benchmarks/FB15K/", 
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K/'), 
 	batch_size = 8192,
 	neg_ent = 25,
 	test = True,

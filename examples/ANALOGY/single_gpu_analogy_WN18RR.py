@@ -19,6 +19,7 @@ ANALOGY-WN18RR-single-gpu
 UniKE 有 1 个工具用于导入数据: :py:class:`unike.data.TrainDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader
 from unike.module.model import Analogy
 from unike.module.loss import SoftplusLoss
@@ -31,7 +32,7 @@ from unike.config import Trainer, Tester
 
 # dataloader for training
 dataloader = KGEDataLoader(
-	in_path = "../../benchmarks/WN18RR/", 
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/WN18RR/'), 
 	batch_size = 4096,
 	neg_ent = 25,
 	test = True, 

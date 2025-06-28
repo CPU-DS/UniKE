@@ -19,6 +19,7 @@ DistMult-WN18RR-single-gpu-adv-wandb
 UniKE 有两个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.utils import WandbLogger
 from unike.data import KGEDataLoader, UniSampler, TradTestSampler
 from unike.module.model import DistMult
@@ -33,7 +34,7 @@ wandb_logger = WandbLogger(
 	project="pybind11-ke",
 	name="DistMult-WN18RR-adv",
 	config=dict(
-		in_path = "../../benchmarks/WN18RR/",
+		in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/WN18RR/'),
 		batch_size = 2000,
 		neg_ent = 64,
 		test = True,

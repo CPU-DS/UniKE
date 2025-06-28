@@ -18,6 +18,7 @@ SimplE-WN18RR-single-gpu-wandb
 UniKE 有两个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.utils import WandbLogger
 from unike.data import KGEDataLoader, BernSampler, TradTestSampler
 from unike.module.model import SimplE
@@ -32,7 +33,7 @@ wandb_logger = WandbLogger(
 	project="pybind11-ke",
 	name="SimplE-WN18RR",
 	config=dict(
-        in_path = '../../benchmarks/WN18RR/',
+        in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/WN18RR/'),
         batch_size = 4096,
         neg_ent = 25,
         test = True,

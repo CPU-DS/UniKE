@@ -20,6 +20,7 @@ TransR-FB15K237-single-gpu-wandb
 UniKE 有两个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.utils import WandbLogger
 from unike.data import KGEDataLoader, BernSampler, TradTestSampler
 from unike.module.model import TransE, TransR
@@ -34,7 +35,7 @@ wandb_logger = WandbLogger(
 	project="pybind11-ke",
 	name="TransR-FB15K237",
 	config=dict(
-		in_path = '../../benchmarks/FB15K237/',
+		in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/'),
 		batch_size = 2048,
 		neg_ent = 25,
 		test = True,

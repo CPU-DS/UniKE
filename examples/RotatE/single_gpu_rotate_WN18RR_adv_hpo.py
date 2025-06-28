@@ -19,6 +19,7 @@ RotatE-WN18RR-single-gpu-adv-hpo
 """
 
 import pprint
+import os
 from unike.data import get_kge_data_loader_hpo_config
 from unike.module.model import get_rotate_hpo_config
 from unike.module.loss import get_sigmoid_loss_hpo_config
@@ -39,7 +40,7 @@ print()
 
 data_loader_config.update({
     'in_path': {
-        'value': '../../benchmarks/WN18RR/'
+        'value': os.path.join(os.path.dirname(__file__), '../../benchmarks/WN18RR/')
     },
     'test_batch_size': {
         'value': 5

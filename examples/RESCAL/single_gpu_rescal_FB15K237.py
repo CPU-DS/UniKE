@@ -19,6 +19,7 @@ RESCAL-FB15K237-single-gpu
 UniKE 有 1 个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader
 from unike.module.model import RESCAL
 from unike.module.loss import MarginLoss
@@ -31,7 +32,7 @@ from unike.config import Trainer, Tester
 
 # dataloader for training
 dataloader = KGEDataLoader(
-	in_path = "../../benchmarks/FB15K237/", 
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/'), 
 	batch_size = 2048,
 	neg_ent = 25,
 	test = True,

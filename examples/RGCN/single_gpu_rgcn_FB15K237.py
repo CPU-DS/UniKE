@@ -19,6 +19,7 @@ RGCN-FB15K237-single-gpu
 UniKE 有一个工具用于导入数据: :py:class:`unike.data.KGEDataLoader`。
 """
 
+import os
 from unike.data import KGEDataLoader, RGCNSampler, RGCNTestSampler
 from unike.module.model import RGCN
 from unike.module.loss import RGCNLoss
@@ -30,7 +31,7 @@ from unike.config import Trainer, Tester
 # :py:class:`unike.data.KGEDataLoader` 包含 ``in_path`` 用于传递数据集目录。
 
 dataloader = KGEDataLoader(
-	in_path = "../../benchmarks/FB15K237/",
+	in_path = os.path.join(os.path.dirname(__file__), '../../benchmarks/FB15K237/'),
 	batch_size = 60000,
 	neg_ent = 10,
 	test = True,
