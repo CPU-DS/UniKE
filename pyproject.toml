@@ -1,6 +1,6 @@
 [project]
 name = "unike"
-version = "3.0.3"
+version = "3.0.4"
 description = "基于 OpenKE-PyTorch 开发的知识图谱嵌入工具包"
 readme = "README.md"
 authors = [
@@ -15,8 +15,8 @@ dependencies = [
     "tqdm>=4.67.1",
     "wandb>=0.18.7",
     "torchdata==0.7.0",
-    "dgl==2.1.0",
     "numpy==1.24.0",
+    "dgl==2.4.0+cu121",
 ]
 
 [project.scripts]
