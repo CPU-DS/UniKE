@@ -91,6 +91,10 @@ class KGEDataLoader:
 
         #: 数据集目录
         self.in_path: str = in_path
+        
+        if not self.in_path.endswith('/'):
+            self.in_path = self.in_path + '/'
+        
         #: entity2id.txt
         self.ent_file: str = ent_file
         #: relation2id.txt
@@ -126,6 +130,8 @@ class KGEDataLoader:
 
         #: 训练集三元组
         self.data_train: list[tuple[int, int, int]] = self.train_sampler.get_train()
+        
+        self.validate_data_train()
 
         if self.test:
             #: 测试数据采样器
@@ -140,7 +146,32 @@ class KGEDataLoader:
             self.data_val: list[tuple[int, int, int]] = self.test_sampler.get_valid()
             #: 测试集三元组
             self.data_test: list[tuple[int, int, int]] = self.test_sampler.get_test()
+            
+            self.validate_data_test()
+            
+    def validate_data_train(self) -> None:
+        """验证训练集中的实体和关系 id 是否合法。"""
+        
+        ent_tol = self.get_ent_tol()
+        rel_tol = self.get_rel_tol()
+        
+        for h, r, t in self.data_train:
+            if h >= ent_tol or r >= rel_tol or t >= ent_tol:
+                raise ValueError(f"the entity id or relation id of train data is out of range: {h}, {r}, {t}")
     
+    def validate_data_test(self) -> None:
+        """验证测试集和验证集中的实体和关系 id 是否合法。"""
+        
+        ent_tol = self.get_ent_tol()
+        rel_tol = self.get_rel_tol()
+        
+        for h, r, t in self.data_val:
+            if h >= ent_tol or r >= rel_tol or t >= ent_tol:
+                raise ValueError(f"the entity id or relation id of test data is out of range: {h}, {r}, {t}")
+        for h, r, t in self.data_test:
+            if h >= ent_tol or r >= rel_tol or t >= ent_tol:
+                raise ValueError(f"the entity id or relation id of test data is out of range: {h}, {r}, {t}")
+        
     def get_ent_tol(self) -> int:
 
         """返回实体个数。
