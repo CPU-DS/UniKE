@@ -16,6 +16,7 @@ from .Timer import Timer
 from .WandbLogger import WandbLogger
 from .tools import import_class, construct_type_constrain
 from .EarlyStopping import EarlyStopping
+from .Link import Link
 
 __all__ = [
 	'Timer',
@@ -23,4 +24,5 @@ __all__ = [
 	'import_class',
 	'construct_type_constrain',
 	'EarlyStopping',
+	'Link',
 ]
