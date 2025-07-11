@@ -82,7 +82,7 @@ class Link:
         with open(os.path.join(self.in_path, self.all_file)) as f:
             _ = f.readline()
             for line in f:
-                head, tail, rel = line.strip().split("\t")
+                head, tail, rel = line.strip().split()
                 self.all.append((int(head), int(rel), int(tail)))
         
         
