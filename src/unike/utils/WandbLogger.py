@@ -13,6 +13,11 @@ WandbLogger - 使用 Weights and Biases 记录实验结果。
 
 import typing
 import wandb
+import logging
+import swanlab
+from typing import Literal
+
+logging.basicConfig(level=logging.INFO)
 
 class WandbLogger:
 
@@ -21,7 +26,8 @@ class WandbLogger:
     def __init__(self,
         project: str ="pybind11-ke",
         name: str = "transe",
-        config: dict[str, typing.Any] | None = None):
+        config: dict[str, typing.Any] | None = None,
+        use: Literal['wandb', 'swanlab', 'both'] = 'wandb'):
 
         """创建 WandbLogger 对象。
         
@@ -31,9 +37,14 @@ class WandbLogger:
         :type name: str
         :param config: wandb 的项目配置如超参数。
         :type config: dict[str, typing.Any] | None
+        :param use_swanlab: 是否使用 swanlab 而不是 wandb
+        :type use_swanlab: bool
         """
+        
+        if use != 'wandb':
+            wandb_run = False if use == 'swanlab' else True
+            swanlab.sync_wandb(wandb_run=wandb_run)
 
-        wandb.login()
         wandb.init(project=project, name=name, config=config)
         
         #: config 的副本
