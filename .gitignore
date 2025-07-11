@@ -13,14 +13,13 @@ wandb
 docs copy
 docs/api/generated
 wandb/
-test
+test/
 benchmarks/FB15K/type_constrain.txt
 benchmarks/FB15K237/type_constrain.txt
 benchmarks/WN18RR/type_constrain.txt
 best_network.pth
 model.pth
 transr_transe.json
-test.py
 
 .venv/
 dist/

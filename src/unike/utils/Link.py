@@ -118,8 +118,10 @@ class Link:
                     t_id = t_id.tile((head_ids.shape[0], ))
                     
                     triple = torch.stack((head_ids, r_id, t_id)).T
-                    
-                    score = self.model(triple)
+                    data = {
+                        "positive_sample": triple
+                    }
+                    score = self.model.predict(data, "single")
                     
                     scores.append(score)
                     triples.append(triple)
