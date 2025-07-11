@@ -12,7 +12,7 @@ docs/experiments
 wandb
 docs copy
 docs/api/generated
-wandb
+wandb/
 test
 benchmarks/FB15K/type_constrain.txt
 benchmarks/FB15K237/type_constrain.txt
@@ -29,3 +29,4 @@ build.sh
 .vscode/
 .DS_Store
 .idea/
+swanlog/

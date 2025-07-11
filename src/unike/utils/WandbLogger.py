@@ -37,8 +37,8 @@ class WandbLogger:
         :type name: str
         :param config: wandb 的项目配置如超参数。
         :type config: dict[str, typing.Any] | None
-        :param use_swanlab: 是否使用 swanlab 而不是 wandb
-        :type use_swanlab: bool
+        :param use: 使用 wandb 还是 swanlab 记录实验结果
+        :type use: Literal['wandb', 'swanlab', 'both']
         """
         
         if use != 'wandb':
