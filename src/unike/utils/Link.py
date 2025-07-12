@@ -86,7 +86,7 @@ class Link:
                 self.all.append((int(head), int(rel), int(tail)))
         
         
-    def link(self, head_ids: list[int], rel_ids: list[int], tail_ids: list[int]) -> pd.DataFrame:
+    def link(self, head_ids: list[int], rel_ids: list[int], tail_ids: list[int], topk: int = 50, device: str = 'cpu') -> pd.DataFrame:
         
         """对给定的头实体、关系和尾实体进行组合并计算链接分数。
         
@@ -98,26 +98,31 @@ class Link:
         :type tail_ids: list[int]
         :returns: 结果数据框
         :rtype: pd.DataFrame
+        :param topk: 返回的 topk 个结果
+        :type topk: int
+        :param device: 设备
+        :type device: str
         """
         
-        head_ids = torch.tensor(head_ids).long()
-        rel_ids = torch.tensor(rel_ids).long()
-        tail_ids = torch.tensor(tail_ids).long()
+        head_ids = torch.tensor(head_ids).long().to(device)
+        rel_ids = torch.tensor(rel_ids).long().to(device)
+        tail_ids = torch.tensor(tail_ids).long().to(device)
         
         triples = []
         scores = []
         
         self.model.eval()
+        self.model.to(device)
         with torch.no_grad():
-            for r_idx in range(len(rel_ids)):
-                for t_idx in range(len(tail_ids)):
+            for h_idx in range(len(head_ids)):
+                for r_idx in range(len(rel_ids)):
+                    h_id = head_ids[h_idx]
                     r_id = rel_ids[r_idx]
-                    t_id = tail_ids[t_idx]
                     
-                    r_id = r_id.tile((head_ids.shape[0], ))
-                    t_id = t_id.tile((head_ids.shape[0], ))
+                    h_id = h_id.tile((tail_ids.shape[0], ))
+                    r_id = r_id.tile((tail_ids.shape[0], ))
                     
-                    triple = torch.stack((head_ids, r_id, t_id)).T
+                    triple = torch.stack((h_id, r_id, tail_ids)).T
                     data = {
                         "positive_sample": triple
                     }
@@ -128,12 +133,14 @@ class Link:
         
         triples = torch.cat(triples)
         scores = torch.cat(scores)
-    
-        triples = list(tuple(triple) for triple in triples.tolist())
-        scores = scores.squeeze(1).tolist()
+        
+        sorted_scores, indices = torch.sort(scores.squeeze(), descending=True)
+        sorted_triples = triples[indices]
 
-        result = [
-                [   
+        triples = list(tuple(triple) for triple in sorted_triples.tolist()[:topk])
+        scores = sorted_scores.tolist()[:topk]
+
+        result = [[   
                     head, rel, tail, 
                     tuple([head, rel, tail]) in self.all, 
                     self.id2ent[head], self.id2rel[rel], self.id2ent[tail],
@@ -143,6 +150,4 @@ class Link:
         ]
         
         df = pd.DataFrame(result, columns=["head", "rel", "tail", "in", "head_ent", "rel_ent", "tail_ent", "score"])
-        df = df.sort_values(by='score', ascending=False).reset_index(drop=True)
-
         return df
