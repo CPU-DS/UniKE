@@ -151,8 +151,8 @@ def hpo_train(config: dict[str, Any] | None = None):
 		)
 
 		# define the model
-		model_class = import_class(f"unike.module.model.{config_.model}")
 		if config_.model in ["TransE", "TransH"]:
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 			    ent_tol = dataloader.get_ent_tol(),
 			    rel_tol = dataloader.get_rel_tol(),
@@ -161,6 +161,7 @@ def hpo_train(config: dict[str, Any] | None = None):
 			    norm_flag = config_.norm_flag
 			)
 		elif config_.model == "TransR":
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			transe = TransE(
 				ent_tol = dataloader.get_ent_tol(),
 				rel_tol = dataloader.get_rel_tol(),
@@ -194,6 +195,7 @@ def hpo_train(config: dict[str, Any] | None = None):
 			transe.save_parameters("./transr_transe.json")
 			kge_model.set_parameters(parameters)
 		elif config_.model == "TransD":
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 				ent_tol = dataloader.get_ent_tol(),
 				rel_tol = dataloader.get_rel_tol(),
@@ -202,6 +204,7 @@ def hpo_train(config: dict[str, Any] | None = None):
 				p_norm = config_.p_norm,
 				norm_flag = config_.norm_flag)
 		elif config_.model == "RotatE":
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 				ent_tol = dataloader.get_ent_tol(),
 				rel_tol = dataloader.get_rel_tol(),
@@ -209,17 +212,20 @@ def hpo_train(config: dict[str, Any] | None = None):
 				margin = config_.margin,
 				epsilon = config_.epsilon)
 		elif config_.model in ["RESCAL", "DistMult", "HolE", "ComplEx", "Analogy", "SimplE"]:
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 			    ent_tol = dataloader.get_ent_tol(),
 			    rel_tol = dataloader.get_rel_tol(),
 			    dim = config_.dim)
 		elif config_.model == "RGCN":
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 				ent_tol = dataloader.get_ent_tol(),
 				rel_tol = dataloader.get_rel_tol(),
 				dim = config_.dim,
 				num_layers = config_.num_layers)
 		elif config_.model == "CompGCN":
+			model_class = import_class(f"unike.module.model.{config_.model}")
 			kge_model = model_class(
 				ent_tol = dataloader.get_ent_tol(),
 				rel_tol = dataloader.get_rel_tol(),
@@ -229,6 +235,16 @@ def hpo_train(config: dict[str, Any] | None = None):
 				hid_drop = config_.hid_drop,
 				margin = config_.margin,
 				decoder_model = config_.decoder_model)
+		else:
+			import sys
+			sys.path.append(config_.model_class_path)
+			model_class = import_class(f"{config_.model_class}")
+			params_config = {key: value for key, value in config_.items() if key in model_class.__init__.__code__.co_varnames}
+			kge_model = model_class(
+       			ent_tol = dataloader.get_ent_tol(),
+			    rel_tol = dataloader.get_rel_tol(),
+       			**params_config
+          	)
 
 		# define the loss function
 		loss_class = import_class(f"unike.module.loss.{config_.loss}")
