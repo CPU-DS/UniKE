@@ -188,7 +188,7 @@ def hpo_train(config: dict[str, Any] | None = None):
 				lr = config_.lr_e,
 				opt_method = config_.opt_method_e,
 				use_gpu = config_.use_gpu_trainer,
-				device = config_.device
+				device = config_.device_trainer
 			)
 			trainer_e.run()
 			parameters = transe.get_parameters()

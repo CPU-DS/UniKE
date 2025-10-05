@@ -24,8 +24,10 @@ from ..utils import WandbLogger
 from torch.utils.data import DataLoader
 from ..utils.EarlyStopping import EarlyStopping
 from ..module.strategy import Strategy
-from accelerate import Accelerator
+from accelerate import Accelerator, InitProcessGroupKwargs
+from datetime import timedelta
 from loguru import logger
+
 
 class Trainer(object):
 
@@ -81,12 +83,13 @@ class Trainer(object):
 
 	def __init__(
 		self,
-		model: Strategy = None,
-		data_loader: DataLoader = None,
+		model: Strategy,
+		data_loader: DataLoader,
 		epochs: int = 1000,
 		lr: float = 0.5,
 		opt_method: str = "Adam",
 		use_accelerator: bool = False,
+		nccl_timeout_seconds: int = 10800,
 		use_gpu: bool = True,
 		device: str = "cuda:0",
 		tester: Tester | None = None,
@@ -94,12 +97,12 @@ class Trainer(object):
 		valid_interval: int | None = None,
 		log_interval: int | None = None,
 		save_interval: int | None = None,
-		save_path: str = None,
+		save_path: str | None = None,
 		use_early_stopping: bool = True,
 		metric: str = 'hits@10',
 		patience: int = 2,
 		delta: float = 0,
-		wandb_logger: WandbLogger = None):
+		wandb_logger: WandbLogger | None = None):
 
 		"""创建 Trainer 对象。
 
@@ -115,6 +118,8 @@ class Trainer(object):
 		:type opt_method: str
 		:param use_accelerator: 使用 accelerate 进行分布式训练
 		:type use_accelerator: bool
+		:param nccl_timeout_seconds: nccl 超时可等待时间（秒）。默认值：10800 
+		:type nccl_timeout_seconds: int
 		:param use_gpu: 是否使用 gpu
 		:type use_gpu: bool
 		:param device: 使用哪个 gpu
@@ -188,29 +193,30 @@ class Trainer(object):
 		#: :py:attr:`unike.utils.EarlyStopping.delta` 参数，监测数量的最小变化才符合改进条件。默认值：0
 		self.delta: float = delta
 		#: 早停对象
-		self.early_stopping: EarlyStopping = None
+		self.early_stopping = None
 
 		#: :py:class:`unike.utils.WandbLogger` 对象
-		self.wandb_logger: WandbLogger = wandb_logger
+		self.wandb_logger = wandb_logger
   
 		#: :py:class:`accelerate.Accelerator` 对象
-		self.accelerator: Accelerator = None
+		self.accelerator = None
 
 		if use_accelerator:
-			if wandb_logger:
-				self.accelerator = Accelerator(log_with=wandb_logger.endpoint)
+			init_process_group_kwargs  = InitProcessGroupKwargs(timeout=timedelta(seconds=nccl_timeout_seconds))
+			if self.wandb_logger:
+				self.accelerator = Accelerator(log_with=self.wandb_logger.endpoint, kwargs_handlers=[init_process_group_kwargs])
 				self.accelerator.init_trackers(
-					project_name=wandb_logger.project,
-					config=wandb_logger.config.__dict__,
+					project_name=self.wandb_logger.project,
+					config=self.wandb_logger.config.__dict__,
 					init_kwargs={
-						wandb_logger.endpoint: {
-							'name': wandb_logger.name
+						self.wandb_logger.endpoint: {
+							'name': self.wandb_logger.name
 						}
 					}
 				)
 				self.wandb_logger.logger = self.accelerator
 			else:
-				self.accelerator = Accelerator()
+				self.accelerator = Accelerator(kwargs_handlers=[init_process_group_kwargs])
 			
 			self.data_loader, self.model = self.accelerator.prepare(self.data_loader, self.model)
 		else:
@@ -314,6 +320,9 @@ class Trainer(object):
 						(epoch + 1) % self.valid_interval == 0:
 					logger.info(f"[{self.get_device()}]({os.getpid()}) Epoch {epoch+1} | The model starts evaluation on the validation set.")
 					self.print_test("link_valid", epoch)
+     
+				# if self.accelerator:
+				# 	self.accelerator.wait_for_everyone()
 			
 				if self.early_stopping and self.early_stopping.early_stop:
 					logger.info(f"[{self.get_device()}]({os.getpid()}) Send an early stopping signal")
