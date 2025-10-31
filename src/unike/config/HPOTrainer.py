@@ -102,7 +102,8 @@ def set_hpo_hits(
 def start_hpo_train(
 	config: dict[str, Any],
 	project: str = "unike-sweeps",
-	count: int = 2) -> None:
+	count: int = 2,
+ 	resume_sweep_id: str | None = None) -> None:
 
 	"""开启超参数优化。
 	
@@ -112,10 +113,16 @@ def start_hpo_train(
 	:type param: str
 	:param count: 进行几次尝试。
 	:type count: int
+	:param resume_sweep_id: 恢复的超参数 sweep id
+	:type resume_sweep_id: str | None
 	"""
 	wandb.login()
-
-	sweep_id = wandb.sweep(config, project=project)
+ 
+	if resume_sweep_id:
+		api = wandb.Api()
+		sweep_id = f'{api.default_entity}/{project}/{resume_sweep_id}'
+	else:
+		sweep_id = wandb.sweep(config, project=project)
 
 	wandb.agent(sweep_id, hpo_train, count=count)
 
