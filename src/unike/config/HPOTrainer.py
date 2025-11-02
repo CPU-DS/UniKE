@@ -21,7 +21,7 @@ from ..config import Trainer, Tester
 from ..data import KGEDataLoader
 from ..utils import WandbLogger
 from loguru import logger
-from typing import Literal, Any
+from typing import Literal, Any, Optional
 import os
 
 
@@ -103,6 +103,7 @@ def start_hpo_train(
 	config: dict[str, Any],
 	project: str = "unike-sweeps",
 	count: int = 2,
+	prior_runs: Optional[list[str]] = None,
  	resume_sweep_id: str | None = None) -> None:
 
 	"""开启超参数优化。
@@ -122,7 +123,7 @@ def start_hpo_train(
 		api = wandb.Api()
 		sweep_id = f'{api.default_entity}/{project}/{resume_sweep_id}'
 	else:
-		sweep_id = wandb.sweep(config, project=project)
+		sweep_id = wandb.sweep(config, project=project, prior_runs=prior_runs)
 
 	wandb.agent(sweep_id, hpo_train, count=count)
 
