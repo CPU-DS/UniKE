@@ -183,6 +183,9 @@ class Trainer(object):
 		self.save_interval: int | None = save_interval
 		#: 模型保存的路径
 		self.save_path: str | None = save_path
+  
+		if (self.save_path):
+			os.makedirs(os.path.split(self.save_path)[0], exist_ok=True)
 
 		#: 是否启用早停，需要 :py:attr:`tester` 和 :py:attr:`save_path` 不为空
 		self.use_early_stopping: bool = use_early_stopping

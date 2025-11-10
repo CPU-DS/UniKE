@@ -16,7 +16,7 @@
 
     >>> import unike
     >>> unike.__version__
-    '3.2.16'
+    '3.2.17'
     >>>
 
 开发
