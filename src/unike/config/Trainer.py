@@ -318,7 +318,7 @@ class Trainer(object):
 				self.model.module.model.train()
 			
 			data_range = self.data_loader
-			if self.accelerator and self.use_tqdm:
+			if not self.accelerator and self.use_tqdm:
 				from tqdm import tqdm
 				data_range = tqdm(self.data_loader, desc=f"Training Epoch {epoch}", total=len(self.data_loader))
 			for data in data_range:
@@ -326,6 +326,11 @@ class Trainer(object):
 				res += loss
 			timer.stop()
 			self.scheduler.step()
+   
+			if self.log_interval and (epoch + 1) % self.log_interval == 0:
+				if self.wandb_logger:
+					self.wandb_logger.log({"train/train_loss" : res, "train/epoch" : epoch + 1})
+				logger.info(f"[{self.get_device()}]({os.getpid()}) Epoch [{epoch+1:>4d}/{self.epochs:>4d}] | loss: {res:>9f} | {timer.avg():.5f} seconds/epoch")
 			
 			if self.is_local_main_process():
 
@@ -353,11 +358,6 @@ class Trainer(object):
 			if self.accelerator and self.accelerator.check_trigger():
 				logger.info(f"[{self.get_device()}]({os.getpid()}) Early stopping")
 				break
-			
-			if self.log_interval and (epoch + 1) % self.log_interval == 0:
-				if self.wandb_logger:
-					self.wandb_logger.log({"train/train_loss" : res, "train/epoch" : epoch + 1})
-				logger.info(f"[{self.get_device()}]({os.getpid()}) Epoch [{epoch+1:>4d}/{self.epochs:>4d}] | loss: {res:>9f} | {timer.avg():.5f} seconds/epoch")
 		
 		logger.info(f"[{self.get_device()}]({os.getpid()}) The model training is completed, taking a total of {timer.sum():.5f} seconds.")
 
@@ -512,6 +512,9 @@ def get_trainer_hpo_config() -> dict[str, dict[str, typing.Any]]:
 			'delta': {
 				'value': 0.0001
 			},
+			'use_tqdm': {
+				'value': False
+			}
 		}
 
 	:returns: :py:class:`Trainer` 的默认超参数优化配置
