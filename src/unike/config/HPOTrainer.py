@@ -326,6 +326,7 @@ def hpo_train(config: dict[str, Any] | None = None):
 			metric = config_.metric,
 			patience = config_.patience,
 			delta = config_.delta,
+			use_tqdm = config_.use_tqdm,
 			wandb_logger = wandb_logger
 		)
 		trainer.run()

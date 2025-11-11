@@ -1496,7 +1496,7 @@ wheels = [
 
 [[package]]
 name = "unike"
-version = "3.2.18"
+version = "3.2.19"
 source = { editable = "." }
 dependencies = [
     { name = "accelerate" },

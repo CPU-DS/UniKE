@@ -560,6 +560,9 @@ def get_trainer_hpo_config() -> dict[str, dict[str, typing.Any]]:
 		'delta': {
 			'value': 0.0001
 		},
+		'use_tqdm': {
+			'value': False
+		}
 	}
 		
 	return parameters_dict
