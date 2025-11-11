@@ -102,6 +102,7 @@ class Trainer(object):
 		metric: str = 'hits@10',
 		patience: int = 2,
 		delta: float = 0,
+		use_tqdm: bool = True,
 		wandb_logger: WandbLogger | None = None):
 
 		"""创建 Trainer 对象。
@@ -144,6 +145,8 @@ class Trainer(object):
 		:type patience: int
 		:param delta: :py:attr:`unike.utils.EarlyStopping.delta` 参数，监测数量的最小变化才符合改进条件。默认值：0
 		:type delta: float
+		:param use_tqdm: 是否启用进度条
+		:type use_tqdm: bool
 		:param wandb_logger: :py:class:`unike.utils.WandbLogger` 对象
 		:type wandb_logger: :py:class:`unike.utils.WandbLogger`
 		"""
@@ -197,6 +200,9 @@ class Trainer(object):
 		self.delta: float = delta
 		#: 早停对象
 		self.early_stopping = None
+  
+		#: 是否启用进度条
+		self.use_tqdm: bool = use_tqdm
 
 		#: :py:class:`unike.utils.WandbLogger` 对象
 		self.wandb_logger = wandb_logger
@@ -311,7 +317,11 @@ class Trainer(object):
 			else:
 				self.model.module.model.train()
 			
-			for data in self.data_loader:
+			data_range = self.data_loader
+			if self.accelerator and self.use_tqdm:
+				from tqdm import tqdm
+				data_range = tqdm(self.data_loader, desc=f"Training Epoch {epoch}", total=len(self.data_loader))
+			for data in data_range:
 				loss = self.train_one_step(data)
 				res += loss
 			timer.stop()
