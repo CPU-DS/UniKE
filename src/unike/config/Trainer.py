@@ -485,10 +485,10 @@ def get_trainer_hpo_config() -> dict[str, dict[str, typing.Any]]:
 			'opt_method': {
 				'values': ['adam', 'adagrad', 'sgd']
 			},
-			'use_gpu_trainer': {
+			'use_gpu': {
 				'value': True
 			},
-			'device_trainer': {
+			'device': {
 				'value': 'cuda:0'
 			},
 			'valid_interval': {
@@ -536,10 +536,10 @@ def get_trainer_hpo_config() -> dict[str, dict[str, typing.Any]]:
 		'opt_method': {
 			'values': ['adam', 'adagrad', 'sgd']
 		},
-		'use_gpu_trainer': {
+		'use_gpu': {
 			'value': True
 		},
-		'device_trainer': {
+		'device': {
 			'value': 'cuda:0'
 		},
 		'valid_interval': {

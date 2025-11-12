@@ -348,10 +348,10 @@ def get_tester_hpo_config() -> dict[str, dict[str, typing.Any]]:
             'use_tqdm': {
                 'value': False
             },
-            'use_gpu_tester': {
+            'use_gpu': {
                 'value': True
             },
-            'device_tester': {
+            'device': {
                 'value': 'cuda:0'
             },
         }
@@ -370,10 +370,10 @@ def get_tester_hpo_config() -> dict[str, dict[str, typing.Any]]:
         'use_tqdm': {
             'value': False
         },
-        'use_gpu_tester': {
+        'use_gpu': {
             'value': True
         },
-        'device_tester': {
+        'device': {
             'value': 'cuda:0'
         },
     }
