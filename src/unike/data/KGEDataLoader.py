@@ -131,7 +131,8 @@ class KGEDataLoader:
         #: 训练集三元组
         self.data_train: list[tuple[int, int, int]] = self.train_sampler.get_train()
         
-        self.validate_data_train()
+        # 对 CompGCN 数据格式不适用
+        # self.validate_data_train()
 
         if self.test:
             #: 测试数据采样器

@@ -295,6 +295,11 @@ class Trainer(object):
 		"""
 
 		if not self.accelerator and self.use_gpu:
+			# DGL 的 CUDA kernel (SpMM/GSpMM) 在多卡环境下依赖 CUDA device
+			# 可能触发 CUDA error: an illegal memory access was encountered
+			if isinstance(self.device, torch.device) and self.device.type == "cuda":
+				if self.device.index is not None:
+					torch.cuda.set_device(self.device.index)
 			self.model.cuda(device = self.device)
 
 		if self.use_early_stopping and self.tester and self.save_path:

@@ -126,6 +126,12 @@ class Tester(object):
         #: 测试数据加载器。
         self.test_dataloader: torch.utils.data.DataLoader = self.data_loader.test_dataloader()
         
+        # NOTE:
+        # 与 Trainer.run 同理：在多卡环境下，显式设置当前 CUDA device，
+        # 避免 DGL/PyTorch 在错误的设备上启动 kernel 导致 illegal memory access。
+        if self.use_gpu and self.device.type == "cuda" and self.device.index is not None:
+            torch.cuda.set_device(self.device.index)
+
         if self.use_gpu and only_test:
             self.model.cuda(device = self.device)
 
