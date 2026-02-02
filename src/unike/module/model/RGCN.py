@@ -236,6 +236,156 @@ class RGCN(Model):
         score = score.sum(dim = -1)
         return score
 
+    def compute_embedding(
+        self,
+        graph: dgl.DGLGraph,
+        ent: torch.Tensor,
+        rel: torch.Tensor,
+        norm: torch.Tensor) -> torch.Tensor:
+        
+        """计算图神经网络的实体嵌入。
+        
+        :param graph: 图
+        :type graph: dgl.DGLGraph
+        :param ent: 实体
+        :type ent: torch.Tensor
+        :param rel: 关系
+        :type rel: torch.Tensor
+        :param norm: 边的归一化系数
+        :type norm: torch.Tensor
+        :returns: 经过图神经网络更新的实体嵌入向量
+        :rtype: torch.Tensor
+        """
+        
+        embedding = self.ent_emb(ent.squeeze())
+        for layer in self.RGCN:
+            embedding = layer(graph, embedding, rel, norm)
+        return embedding
+
+    def precompute_all_embeddings(
+        self,
+        graph: dgl.DGLGraph,
+        ent: torch.Tensor,
+        rel: torch.Tensor,
+        norm: torch.Tensor,
+        batch_size: int = 0) -> None:
+        
+        """预计算所有实体的嵌入向量并缓存，用于测试/推理时减少显存占用。
+        
+        在测试开始前调用此方法一次，之后的 predict 调用将直接使用缓存的嵌入，
+        不再需要在每个 batch 中运行图神经网络。
+        
+        :param graph: 完整的图
+        :type graph: dgl.DGLGraph
+        :param ent: 所有实体
+        :type ent: torch.Tensor
+        :param rel: 所有关系
+        :type rel: torch.Tensor
+        :param norm: 边的归一化系数
+        :type norm: torch.Tensor
+        :param batch_size: 分层推理的批次大小
+        :type batch_size: int
+        """
+        
+        with torch.no_grad():
+            if batch_size > 0:
+                self._cached_embedding = self._layer_wise_inference(
+                    graph, ent, rel, norm, batch_size
+                )
+            else:
+                self._cached_embedding = self.compute_embedding(graph, ent, rel, norm)
+    
+    def _layer_wise_inference(
+        self,
+        graph: dgl.DGLGraph,
+        ent: torch.Tensor,
+        rel: torch.Tensor,
+        norm: torch.Tensor,
+        batch_size: int) -> torch.Tensor:
+        
+        """分层推理：逐层计算所有节点的嵌入，每层使用 mini-batch。
+        
+        这种方法的显存峰值远小于一次性前向传播，适合大规模图。
+        
+        :param graph: 完整的图
+        :type graph: dgl.DGLGraph
+        :param ent: 所有实体
+        :type ent: torch.Tensor
+        :param rel: 所有关系
+        :type rel: torch.Tensor
+        :param norm: 边的归一化系数
+        :type norm: torch.Tensor
+        :param batch_size: 每个 mini-batch 的节点数
+        :type batch_size: int
+        :returns: 所有实体的嵌入向量
+        :rtype: torch.Tensor
+        """
+        
+        device = next(self.parameters()).device
+        num_nodes = graph.num_nodes()
+        
+        embedding = self.ent_emb(ent.squeeze())  # [num_nodes, dim]
+        
+        # 逐层计算
+        for layer in self.RGCN:
+            new_embedding = torch.zeros_like(embedding, device='cpu')
+
+            for start in range(0, num_nodes, batch_size):
+                end = min(start + batch_size, num_nodes)
+
+                target_nodes = torch.arange(start, end, device=device)
+
+                subgraph = dgl.in_subgraph(graph, target_nodes)
+
+                src, dst = subgraph.edges()
+                edge_ids = subgraph.edata[dgl.EID]
+                
+                if len(src) == 0:
+                    new_embedding[start:end] = embedding[start:end].cpu()
+                    continue
+                
+                sub_rel = rel[edge_ids]  # type: ignore
+                sub_norm = norm[edge_ids]  # type: ignore
+                
+                unique_nodes = torch.unique(torch.cat([src, dst]))
+                node_map = torch.zeros(num_nodes, dtype=torch.long, device=device)
+                node_map[unique_nodes] = torch.arange(len(unique_nodes), device=device)
+                
+                local_src = node_map[src]
+                local_dst = node_map[dst]
+                
+                compact_graph = dgl.graph((local_src, local_dst), num_nodes=len(unique_nodes))
+                compact_graph = compact_graph.to(device)
+                
+                sub_embedding = embedding[unique_nodes]
+                
+                out = layer(compact_graph, sub_embedding, sub_rel, sub_norm)
+                
+                target_local = node_map[target_nodes]
+                new_embedding[start:end] = out[target_local].cpu()
+            
+            embedding = new_embedding.to(device)
+        
+        return embedding
+    
+    def clear_cached_embeddings(self) -> None:
+        
+        """清除缓存的嵌入向量，释放显存。"""
+        
+        if hasattr(self, '_cached_embedding'):
+            del self._cached_embedding
+            self._cached_embedding = None
+    
+    def has_cached_embeddings(self) -> bool:
+        
+        """检查是否有缓存的嵌入向量。
+        
+        :returns: 是否有缓存
+        :rtype: bool
+        """
+        
+        return hasattr(self, '_cached_embedding') and self._cached_embedding is not None
+
     @override
     def predict(
         self,
@@ -252,15 +402,18 @@ class RGCN(Model):
         :rtype: torch.Tensor
 		"""
 
-        triples    = data['positive_sample']
-        graph      = data['graph']
-        ent        = data['entity']
-        rel        = data['rela']
-        norm       = data['norm']
+        triples = data['positive_sample']
+        embedding: torch.Tensor
 
-        embedding = self.ent_emb(ent.squeeze())
-        for layer in self.RGCN:
-            embedding = layer(graph, embedding, rel, norm)
+        if self.has_cached_embeddings():
+            embedding = self._cached_embedding
+        else:
+            graph = data['graph']
+            ent = data['entity']
+            rel = data['rela']
+            norm = data['norm']
+            embedding = self.compute_embedding(graph, ent, rel, norm)
+        
         self.Loss_emb = embedding
         head_emb, rela_emb, tail_emb = self.tri2emb(embedding, triples, mode)
         score = self.distmult_score_func(head_emb, rela_emb, tail_emb, mode)

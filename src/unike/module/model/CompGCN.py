@@ -278,6 +278,68 @@ class CompGCN(Model):
         score = torch.sigmoid(x)
         return score
 
+    def compute_embedding(
+        self,
+        graph: dgl.DGLGraph,
+        relation: torch.Tensor,
+        norm: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        
+        """计算图神经网络的实体和关系嵌入。
+        
+        :param graph: 图
+        :type graph: dgl.DGLGraph
+        :param relation: 关系
+        :type relation: torch.Tensor
+        :param norm: 边的归一化系数
+        :type norm: torch.Tensor
+        :returns: 更新后的实体嵌入和关系嵌入
+        :rtype: tuple[torch.Tensor, torch.Tensor]
+        """
+        
+        x, r = self.ent_emb, self.rel_emb
+        x, r = self.GraphCov(graph, x, r, relation, norm)
+        x = self.drop(x)
+        return x, r
+
+    def precompute_all_embeddings(
+        self,
+        graph: dgl.DGLGraph,
+        ent: torch.Tensor,
+        rel: torch.Tensor,
+        norm: torch.Tensor,
+        batch_size: int = 0) -> None:
+        
+        """预计算所有实体和关系的嵌入向量并缓存。
+        
+        :param graph: 完整的图
+        :type graph: dgl.DGLGraph
+        :param ent: 未使用，保持接口一致
+        :type ent: torch.Tensor
+        :param rel: 关系
+        :type rel: torch.Tensor
+        :param norm: 边的归一化系数
+        :type norm: torch.Tensor
+        :param batch_size: 未使用（CompGCN 只有一层，分层推理收益不大）
+        :type batch_size: int
+        """
+        
+        with torch.no_grad():
+            self._cached_ent_emb, self._cached_rel_emb = self.compute_embedding(graph, rel, norm)
+    
+    def clear_cached_embeddings(self) -> None:
+        """清除缓存的嵌入向量。"""
+        if hasattr(self, '_cached_ent_emb'):
+            del self._cached_ent_emb
+            self._cached_ent_emb = None
+        if hasattr(self, '_cached_rel_emb'):
+            del self._cached_rel_emb
+            self._cached_rel_emb = None
+    
+    def has_cached_embeddings(self) -> bool:
+        """检查是否有缓存的嵌入向量。"""
+        return (hasattr(self, '_cached_ent_emb') and self._cached_ent_emb is not None and
+                hasattr(self, '_cached_rel_emb') and self._cached_rel_emb is not None)
+
     @override
     def predict(
         self,
@@ -294,15 +356,18 @@ class CompGCN(Model):
         :rtype: torch.Tensor
 		"""
         
-        triples    = data['positive_sample']
-        graph      = data['graph']
-        relation   = data['rela']
-        norm       = data['norm'] 
-
+        triples = data['positive_sample']
         head, rela = triples[:,0], triples[:, 1]
-        x, r = self.ent_emb, self.rel_emb
-        x, r = self.GraphCov(graph, x, r, relation, norm)
-        x = self.drop(x)
+
+        if self.has_cached_embeddings():
+            x = self._cached_ent_emb  # type: ignore
+            r = self._cached_rel_emb  # type: ignore
+        else:
+            graph = data['graph']  # type: ignore
+            relation = data['rela']
+            norm = data['norm'] 
+            x, r = self.compute_embedding(graph, relation, norm)
+
         head_emb = torch.index_select(x, 0, head)
         rela_emb = torch.index_select(r, 0, rela)
 

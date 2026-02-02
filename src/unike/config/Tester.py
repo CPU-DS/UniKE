@@ -85,7 +85,8 @@ class Tester(object):
         use_tqdm: bool = True,
         use_gpu: bool = True,
         device: str = "cuda:0",
-        only_test: bool = False):
+        only_test: bool = False,
+        inference_batch_size: int = 0):
 
         """创建 Tester 对象。
         
@@ -105,6 +106,10 @@ class Tester(object):
         :type device: str
         :param only_test: 是否是评估已经训练好的模型
         :type only_test: bool
+        :param inference_batch_size: GNN 模型（如 RGCN）分层推理的批次大小。
+            设置为 0 表示一次性计算全图（显存占用大）；
+            设置较小的值（如 5000-20000）可以大幅减少显存占用，适合大规模知识图谱。
+        :type inference_batch_size: int
         """
 
         #: KGE 模型，即 :py:class:`unike.module.model.Model`
@@ -121,14 +126,13 @@ class Tester(object):
         self.use_gpu: bool = use_gpu
         #: gpu，利用 ``device`` 构造的 :py:class:`torch.device` 对象
         self.device: torch.device = torch.device(device)
+        #: GNN 分层推理的批次大小
+        self.inference_batch_size: int = inference_batch_size
         #: 验证数据加载器。
         self.val_dataloader: torch.utils.data.DataLoader = self.data_loader.val_dataloader()
         #: 测试数据加载器。
         self.test_dataloader: torch.utils.data.DataLoader = self.data_loader.test_dataloader()
         
-        # NOTE:
-        # 与 Trainer.run 同理：在多卡环境下，显式设置当前 CUDA device，
-        # 避免 DGL/PyTorch 在错误的设备上启动 kernel 导致 illegal memory access。
         if self.use_gpu and self.device.type == "cuda" and self.device.index is not None:
             torch.cuda.set_device(self.device.index)
 
@@ -167,6 +171,41 @@ class Tester(object):
         else:
             return x
 
+    def _precompute_gnn_embeddings(self, dataloader: torch.utils.data.DataLoader) -> bool:
+        
+        """为 GNN 模型（如 RGCN）预计算嵌入向量。
+        
+        :param dataloader: 数据加载器
+        :type dataloader: torch.utils.data.DataLoader
+        :returns: 是否成功预计算
+        :rtype: bool
+        """
+        
+        if not hasattr(self.model, 'precompute_all_embeddings'):
+            return False
+        
+
+        for data in dataloader:
+            data = {key: self.to_var(value) for key, value in data.items()}
+            if 'graph' in data:
+                self.model.precompute_all_embeddings(
+                    graph=data['graph'],
+                    ent=data['entity'],
+                    rel=data['rela'],
+                    norm=data['norm'],
+                    batch_size=self.inference_batch_size
+                )
+                return True
+            break
+        return False
+
+    def _clear_gnn_embeddings(self) -> None:
+        
+        """清除 GNN 模型的缓存嵌入。"""
+        
+        if hasattr(self.model, 'clear_cached_embeddings'):
+            self.model.clear_cached_embeddings()
+
     def run_link_prediction(self) -> dict[str, float]:
         
         """进行链接预测。
@@ -176,10 +215,15 @@ class Tester(object):
         """
 
         if self.sampling_mode == "link_valid":
-            training_range = tqdm(self.val_dataloader) if self.use_tqdm else self.val_dataloader
+            dataloader = self.val_dataloader
         elif self.sampling_mode == "link_test":
-            training_range = tqdm(self.test_dataloader) if self.use_tqdm else self.test_dataloader
+            dataloader = self.test_dataloader
+        
         self.model.eval()
+        
+        precomputed = self._precompute_gnn_embeddings(dataloader)
+        
+        training_range = tqdm(dataloader) if self.use_tqdm else dataloader
         results = collections.defaultdict(float)
         results_type = collections.defaultdict(float)
         with torch.no_grad():
@@ -199,6 +243,9 @@ class Tester(object):
                 results["mrr"] += torch.sum(1.0 / ranks).item()
                 for k in self.hits:
                     results['hits@{}'.format(k)] += torch.numel(ranks[ranks <= k])
+
+        if precomputed:
+            self._clear_gnn_embeddings()
 
         count = results["count"]
         results = {key : np.around(value / count, decimals=3).item() for key, value in results.items() if key != "count"}
