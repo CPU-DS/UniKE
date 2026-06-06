@@ -82,4 +82,4 @@ pip install unike
 }
 ```
 
-该仓库主要由 [Yanfeng Lu](https://github.com/LuYF-Lemon-love)，[Fengzhen Hou](https://github.com/houfz-cpu) 提供（按时间顺序排列）。
+该仓库主要由 [Yanfeng Lu](https://github.com/LuYF-Lemon-love)，[Fengzhen Hou](https://github.com/houfz-cpu)，[Tao Wang](https://github.com/wangtao2001)提供（按时间顺序排列）。
